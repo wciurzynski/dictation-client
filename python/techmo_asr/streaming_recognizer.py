@@ -66,7 +66,7 @@ class RequestIterator:
 
 
 class StreamingRecognizer:
-    def __init__(self, address, ssl_directory, encoding, sample_rate_hertz, language_code, speech_contexts, interim_results, single_utterance, session_id=None):
+    def __init__(self, address, ssl_directory, encoding, sample_rate_hertz, language_code, speech_contexts, interim_results=False, single_utterance=False, session_id=None):
         # Use ArgumentParser to parse settings
         self.service = dictation_asr_pb2_grpc.SpeechStub(StreamingRecognizer.create_channel(address, ssl_directory))
         self.encoding = encoding
@@ -88,8 +88,9 @@ class StreamingRecognizer:
 
         recognitions = self.service.StreamingRecognize(requests_iterator, metadata=metadata)
 
-        confirmed_result = None
+        transcript = ''
         confidence = None
+        confidence_list = list()
 
         for recognition in recognitions:
             if recognition.error.code:
@@ -102,13 +103,16 @@ class StreamingRecognizer:
             elif recognition.results is not None and len(recognition.results) > 0:
                 first = recognition.results[0]
                 if first.is_final:
-                    confirmed_result = first.alternatives[0].transcript
-                    confidence = first.alternatives[0].confidence
+                    transcript += first.alternatives[0].transcript
+                    confidence_list.append(first.alternatives[0].confidence)
 
                 else:
                     logger.debug(u"Temporal results - {}".format(first))
 
-        return confirmed_result, confidence
+        if confidence_list:
+            confidence = sum(confidence_list) / len(confidence_list)
+
+        return transcript, confidence
 
     @staticmethod
     def create_channel(address, ssl_directory):
