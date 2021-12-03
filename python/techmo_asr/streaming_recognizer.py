@@ -1,7 +1,7 @@
 import os
 import threading
-from ..techmo_service import dictation_asr_pb2 as dictation_asr_pb2
-from ..techmo_service import dictation_asr_pb2_grpc as dictation_asr_pb2_grpc
+from techmo_service import dictation_asr_pb2 as dictation_asr_pb2
+from techmo_service import dictation_asr_pb2_grpc as dictation_asr_pb2_grpc
 import grpc
 import logging
 
