@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 from argparse import ArgumentParser
-from utils.audio_source import AudioStream
-from utils.mic_source import MicrophoneStream
-from service.dictation_settings import DictationSettings
-from service.streaming_recognizer import StreamingRecognizer
+from techmo_utils.audio_source import AudioStream
+from techmo_utils.mic_source import MicrophoneStream
+from techmo_service.dictation_settings import DictationSettings
+from techmo_service.streaming_recognizer import StreamingRecognizer
 from VERSION import __version__
 
 
