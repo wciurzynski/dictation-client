@@ -33,3 +33,9 @@ class DictationSettings:
 
     def context_phrase(self):
         return self.args.context_phrase
+
+    def encoding(self):
+        return self.args.encoding
+
+    def language_code(self):
+        return self.args.language_code
