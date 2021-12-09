@@ -34,12 +34,11 @@ class RequestIterator:
             enable_word_time_offsets=False,  # if true, return recognized word time offsets
             max_alternatives=1,  # maximum number of returned hypotheses
         )
-        if self.o_streaming_recognizer.speech_contexts:
+        if self.o_streaming_recognizer.context_phrase:
             speech_context = recognition_config.speech_contexts.add()
-            for context in self.o_streaming_recognizer.speech_contexts:
-                speech_context.phrases.append(context)
+            speech_context.phrases.append(self.o_streaming_recognizer.context_phrase)
 
-        req = dictation_asr_pb2.StreamingRecognizeRequest(
+        config_req = dictation_asr_pb2.StreamingRecognizeRequest(
             streaming_config=dictation_asr_pb2.StreamingRecognitionConfig(
                 config=recognition_config,
                 single_utterance=self.o_streaming_recognizer.single_utterance,
@@ -47,8 +46,25 @@ class RequestIterator:
             )
             # no audio data in first request (config only)
         )
+
+        cf = config_req.streaming_config.config.config_fields.add()
+        cf.key = 'no-input-timeout'
+        cf.value = str(self.o_streaming_recognizer.no_input_timeout)
+
+        cf = config_req.streaming_config.config.config_fields.add()
+        cf.key = 'speech-complete-timeout'
+        cf.value = str(self.o_streaming_recognizer.speech_complete_timeout)
+
+        cf = config_req.streaming_config.config.config_fields.add()
+        cf.key = 'speech-incomplete-timeout'
+        cf.value = str(self.o_streaming_recognizer.speech_incomplete_timeout)
+
+        cf = config_req.streaming_config.config.config_fields.add()
+        cf.key = 'recognition-timeout'
+        cf.value = str(self.o_streaming_recognizer.recognition_timeout)
+
         self.is_initial_request = False
-        return req
+        return config_req
 
     def _normal_request(self):
         data = next(self.audio_generator)
@@ -66,16 +82,24 @@ class RequestIterator:
 
 
 class StreamingRecognizer:
-    def __init__(self, address, ssl_directory, encoding, sample_rate_hertz, language_code, speech_contexts, interim_results=False, single_utterance=False, session_id=None):
+    def __init__(
+            self, address, ssl_directory, encoding, sample_rate_hertz, language_code,
+            context_phrase=None, interim_results=False, single_utterance=False, session_id=None,
+            no_input_timeout=5000, speech_complete_timeout=2000, speech_incomplete_timeout=4000, recognition_timeout=10000,
+    ):
         # Use ArgumentParser to parse settings
         self.service = dictation_asr_pb2_grpc.SpeechStub(StreamingRecognizer.create_channel(address, ssl_directory))
         self.encoding = encoding
         self.sample_rate_hertz = sample_rate_hertz
         self.language_code = language_code
-        self.speech_contexts = speech_contexts
+        self.context_phrase = context_phrase
         self.interim_results = interim_results
         self.single_utterance = single_utterance
         self.session_id = session_id
+        self.no_input_timeout = no_input_timeout
+        self.speech_complete_timeout = speech_complete_timeout
+        self.speech_incomplete_timeout = speech_incomplete_timeout
+        self.recognition_timeout = recognition_timeout
 
     def recognize(self, audio_generator):
         requests_iterator = RequestIterator(self, audio_generator)
