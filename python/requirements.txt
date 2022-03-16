@@ -3,7 +3,7 @@ grpcio==1.42.0
 grpcio-tools==1.42.0
 google-api-core==2.2.2
 protobuf==3.19.1
-gapic-google-cloud-speech-v1==1.35.0
+gapic-google-cloud-speech-v1==0.15.3
 grpc-google-cloud-speech-v1==0.8.1
 proto-google-cloud-speech-v1==0.15.3
 google-auth==2.3.3
