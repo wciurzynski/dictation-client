@@ -83,12 +83,20 @@ class RequestIterator:
 
 class StreamingRecognizer:
     def __init__(
-            self, address, ssl_directory, encoding, sample_rate_hertz, language_code,
+            self, address, encoding, sample_rate_hertz, language_code,
             context_phrase=None, interim_results=False, single_utterance=False, session_id=None,
             no_input_timeout=5000, speech_complete_timeout=2000, speech_incomplete_timeout=4000, recognition_timeout=10000,
+            ssl_directory=None, root_certificates=None, private_key=None, certificate_chain=None
     ):
         # Use ArgumentParser to parse settings
-        self.service = dictation_asr_pb2_grpc.SpeechStub(StreamingRecognizer.create_channel(address, ssl_directory))
+
+        if ssl_directory:
+            self.service = dictation_asr_pb2_grpc.SpeechStub(StreamingRecognizer.create_channel(address, ssl_directory))
+        elif root_certificates:
+            self.service = dictation_asr_pb2_grpc.SpeechStub(grpc.secure_channel(address, grpc.ssl_channel_credentials(root_certificates, private_key, certificate_chain)))
+        else:
+            self.service = dictation_asr_pb2_grpc.SpeechStub(grpc.insecure_channel(address))
+
         self.encoding = encoding
         self.sample_rate_hertz = sample_rate_hertz
         self.language_code = language_code
@@ -141,6 +149,10 @@ class StreamingRecognizer:
     @staticmethod
     def create_channel(address, ssl_directory):
         if not ssl_directory:
+            return grpc.insecure_channel(address)
+
+        if not os.path.isdir(ssl_directory):
+            logging.error(f'SSL directory {ssl_directory} not exists')
             return grpc.insecure_channel(address)
 
         def read_file(path):
