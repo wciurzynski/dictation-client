@@ -91,12 +91,13 @@ class StreamingRecognizer:
         # Use ArgumentParser to parse settings
 
         if ssl_directory:
-            self.service = dictation_asr_pb2_grpc.SpeechStub(StreamingRecognizer.create_channel(address, ssl_directory))
+            channel = StreamingRecognizer.create_channel(address, ssl_directory)
         elif root_certificates:
-            self.service = dictation_asr_pb2_grpc.SpeechStub(grpc.secure_channel(address, grpc.ssl_channel_credentials(root_certificates, private_key, certificate_chain)))
+            channel = grpc.secure_channel(address, grpc.ssl_channel_credentials(root_certificates, private_key, certificate_chain))
         else:
-            self.service = dictation_asr_pb2_grpc.SpeechStub(grpc.insecure_channel(address))
+            channel = grpc.insecure_channel(address)
 
+        self.service = dictation_asr_pb2_grpc.SpeechStub(channel)
         self.encoding = encoding
         self.sample_rate_hertz = sample_rate_hertz
         self.language_code = language_code
