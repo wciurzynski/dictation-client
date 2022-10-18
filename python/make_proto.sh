@@ -16,7 +16,7 @@ trap cleanup EXIT
 
 echo "Generating dictation Python protobuf/grpc sources."
 path_i="../proto"
-path_o="service"
+path_o="techmo_service"
 python3 -m grpc_tools.protoc \
 	        -I${path_i} \
             -I../submodules/googleapis \
