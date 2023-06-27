@@ -157,14 +157,18 @@ class StreamingRecognizer:
         final_alignment = [[]]
         final_transcript = ' '.join(confirmed_results)
 
-        if self.time_offsets and alignment:
-            final_alignment = alignment
+        if self.time_offsets:
+            if alignment:
+                final_alignment = alignment
 
-        return {
-            'transcript': final_transcript,
-            'alignment': final_alignment,
-            'confidence': confidence
-        }
+            return {
+                'transcript': final_transcript,
+                'alignment': final_alignment,
+                'confidence': confidence
+            }
+
+        else:
+            return final_transcript, confidence
 
     @staticmethod
     def create_channel(address, ssl_directory):
