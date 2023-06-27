@@ -86,7 +86,7 @@ class StreamingRecognizer:
             self, address, encoding, sample_rate_hertz, language_code,
             context_phrase=None, interim_results=False, single_utterance=False, session_id=None,
             no_input_timeout=5000, speech_complete_timeout=2000, speech_incomplete_timeout=4000, recognition_timeout=10000,
-            ssl_directory=None, root_certificates=None, private_key=None, certificate_chain=None
+            ssl_directory=None, root_certificates=None, private_key=None, certificate_chain=None, time_offsets=False
     ):
         # Use ArgumentParser to parse settings
 
@@ -109,6 +109,7 @@ class StreamingRecognizer:
         self.speech_complete_timeout = speech_complete_timeout
         self.speech_incomplete_timeout = speech_incomplete_timeout
         self.recognition_timeout = recognition_timeout
+        self.time_offsets = time_offsets
 
     def recognize(self, audio_generator):
         requests_iterator = RequestIterator(self, audio_generator)
@@ -121,7 +122,8 @@ class StreamingRecognizer:
 
         recognitions = self.service.StreamingRecognize(requests_iterator, metadata=metadata)
 
-        transcript = ''
+        confirmed_results = []
+        alignment = []
         confidence = None
         confidence_list = list()
 
@@ -132,11 +134,18 @@ class StreamingRecognizer:
             elif recognition.speech_event_type != dictation_asr_pb2.StreamingRecognizeResponse.SPEECH_EVENT_UNSPECIFIED:
                 logger.error(u"Received speech event type: {}".format(dictation_asr_pb2.StreamingRecognizeResponse.SpeechEventType.Name(recognition.speech_event_type)))
 
-            # process response type
             elif recognition.results is not None and len(recognition.results) > 0:
                 first = recognition.results[0]
                 if first.is_final:
-                    transcript += first.alternatives[0].transcript
+                    if self.time_offsets:
+                        for word in first.alternatives[0].words:
+                            if word.word != '<eps>':
+                                confirmed_results.append(word.word)
+                                alignment.append([word.start_time, word.end_time])
+
+                    else:
+                        confirmed_results.append(first.alternatives[0].transcript)
+
                     confidence_list.append(first.alternatives[0].confidence)
 
                 else:
@@ -145,7 +154,17 @@ class StreamingRecognizer:
         if confidence_list:
             confidence = sum(confidence_list) / len(confidence_list)
 
-        return transcript, confidence
+        final_alignment = [[]]
+        final_transcript = ' '.join(confirmed_results)
+
+        if self.time_offsets and alignment:
+            final_alignment = alignment
+
+        return {
+            'transcript': final_transcript,
+            'alignment': final_alignment,
+            'confidence': confidence
+        }
 
     @staticmethod
     def create_channel(address, ssl_directory):
